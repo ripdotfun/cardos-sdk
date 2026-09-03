@@ -15,6 +15,7 @@ import type {
   PayoutWallet,
   PayoutWalletGetParams,
   PayoutWalletSetParams,
+  RevenueOutstanding,
   RevenuePayout,
   RevenuePayoutsParams,
   RevenueSummary,
@@ -70,6 +71,9 @@ export class RevenueResource extends Resource {
    * Closing a period freezes its figures AND its rates, so a statement is a
    * permanent record. `status` is `PENDING` (closed, awaiting payment), `PAID`
    * (`tx_hash` set), `FAILED`, or `VOID` (settled off the on-chain rail).
+   *
+   * The same endpoint also returns the totals owed; read those with
+   * {@link outstanding}, which keeps this method a plain page of statements.
    */
   payouts(params?: RevenuePayoutsParams): Promise<OffsetPage<RevenuePayout>> {
     const { overrides, rest } = this.split(params);
@@ -78,6 +82,30 @@ export class RevenueResource extends Resource {
       "payouts",
       rest,
     );
+  }
+
+  /**
+   * Everything owed right now: the unpaid statements plus your live share of
+   * activity no statement covers yet.
+   *
+   * `GET /api/v1/mystery/payouts` — scope `packs:read`. The same call as
+   * {@link payouts}, reading the totals beside the rows: without `accruing`,
+   * your first period reads zero until it closes, even while every pull is
+   * earning. `accruing` is `null` on the POOL model.
+   */
+  outstanding(opts?: RequestOverrides): Promise<RevenueOutstanding> {
+    return this.http
+      .data<RevenueOutstanding & { payouts: RevenuePayout[] }>({
+        ...(opts ?? {}),
+        method: "GET",
+        path: "/api/v1/mystery/payouts",
+        query: { limit: 1 },
+      })
+      .then(({ outstanding_usdc, accruing, total_owed_usdc }) => ({
+        outstanding_usdc,
+        accruing,
+        total_owed_usdc,
+      }));
   }
 
   /**

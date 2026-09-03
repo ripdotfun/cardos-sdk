@@ -135,7 +135,13 @@ export interface RedemptionSubmitResult {
   redemption_id: number;
   status: RedemptionStatus;
   burn_tx_hash: TxHash;
-  /** Label bought at submit. Absent/null when the buy failed — the warehouse path retries. */
+  /**
+   * Present only when the shipping label was bought right here, which needs the
+   * burn already confirmed on-chain AND the shipping payment landed. Absent (or
+   * null) otherwise, and that is the normal case: the label is bought later and
+   * the tracking number reaches you on `get()` and the `redemption.updated`
+   * webhook. Never read their absence as a failure.
+   */
   tracking_number?: string | null;
   tracking_url?: string | null;
   label_url?: string | null;

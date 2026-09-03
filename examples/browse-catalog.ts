@@ -89,7 +89,8 @@ async function main(): Promise<void> {
     await cardos.cards.search({ q: "nosuchfield:1" });
   } catch (err) {
     if (err instanceof ValidationError) {
-      console.log(`\ninvalid_query: ${err.message}`, err.details);
+      // unknown_field / parse_error / invalid_value carry details.position.
+      console.log(`\n${err.code}: ${err.message}`, err.details);
     }
   }
 }

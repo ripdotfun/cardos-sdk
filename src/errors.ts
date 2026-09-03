@@ -20,7 +20,7 @@ export interface CardOSErrorOptions {
   requestId?: string | null;
   /** `Retry-After` in milliseconds, when the API sent one. */
   retryAfterMs?: number | null;
-  /** Extra structured detail the API attached (e.g. `details.position` on invalid_query). */
+  /** Extra structured detail the API attached (e.g. `details.position` on a `parse_error`). */
   details?: unknown;
   /** Endpoint that failed, for diagnostics. */
   method?: string;
@@ -73,7 +73,7 @@ export class CardOSError extends Error {
   }
 }
 
-/** 400 — the request was malformed (`invalid_query`, `invalid_tier`, `missing_idempotency_key`, …). */
+/** 400 — the request was malformed (`parse_error`, `invalid_tier`, `missing_idempotency_key`, …). */
 export class ValidationError extends CardOSError {}
 /** 401 — missing / invalid / expired API key. */
 export class AuthenticationError extends CardOSError {}

@@ -65,7 +65,7 @@ export class CardOS {
   readonly sellback: SellbackResource;
   /** Marketplace buyback offers (token-first and purchase-linked), relayed accept. */
   readonly buyback: BuybackResource;
-  /** Physical redemption: shipping quotes, KYC-gated prepare, burn submit, status. */
+  /** Physical redemption: shipping quotes, prepare, burn submit, status. */
   readonly redemption: RedemptionResource;
   /** Revenue share: terms, running numbers, statements, payout wallet. */
   readonly revenue: RevenueResource;

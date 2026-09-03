@@ -256,36 +256,29 @@ describe("constructEvent", () => {
     ).rejects.toThrow(/missing the `event` field/i);
   });
 
-  it("exports every documented event type, across both products", () => {
-    // 21 Gacha / Instant Pack events + 6 Card Data events.
-    expect(WEBHOOK_EVENT_TYPES).toHaveLength(27);
+  it("exports every live event type", () => {
+    // The 21 events the registry accepts today. Catalog events are documented
+    // ahead of their launch and rejected with 400 invalid_event_types.
+    expect(WEBHOOK_EVENT_TYPES).toHaveLength(21);
     expect(WEBHOOK_EVENT_TYPES).toContain("purchase.fulfilled");
     expect(WEBHOOK_EVENT_TYPES).toContain("payout.paid");
-    expect(WEBHOOK_EVENT_TYPES).toContain("card.price_updated");
-    expect(WEBHOOK_EVENT_TYPES).toContain("population.updated");
     expect(isWebhookEventType("pool.item_pulled")).toBe(true);
-    expect(isWebhookEventType("expansion.released")).toBe(true);
+    expect(isWebhookEventType("redemption.updated")).toBe(true);
+    expect(isWebhookEventType("card.price_updated")).toBe(false);
     expect(isWebhookEventType("nope")).toBe(false);
   });
 
-  it("narrows a Card Data event's data by name", async () => {
+  it("returns an unknown event rather than dropping it", async () => {
     const body = JSON.stringify({
       event: "card.price_updated",
       id: "card.price_updated:swsh7-215",
-      data: {
-        card_id: "swsh7-215",
-        game: "pokemon",
-        previous: 380.0,
-        current: 412.5,
-        change_pct: 8.55,
-        condition: "NM",
-      },
+      data: { card_id: "swsh7-215", change_pct: 8.55 },
     });
     const signature = await sign(body, SECRET, NOW);
     const event = await constructEvent({ payload: body, signature, secret: SECRET, now: NOW });
-    if (event.event !== "card.price_updated") throw new Error("bad narrowing");
-    expect(event.data.card_id).toBe("swsh7-215");
-    expect(event.data.change_pct).toBe(8.55);
+    expect(event.event).toBe("card.price_updated");
+    expect(isWebhookEventType(event.event)).toBe(false);
+    expect(event.data).toMatchObject({ card_id: "swsh7-215" });
   });
 });
 
@@ -317,22 +310,6 @@ describe("cardos.webhooks", () => {
     expect(hook.id).toBe(3);
   });
 
-  it("register forwards Card Data filters when given", async () => {
-    const fx = mockFetch([
-      { status: 201, body: { success: true, data: { ...registration, signing_secret: "c".repeat(64) } } },
-    ]);
-    await makeClient(fx).webhooks.register({
-      url: "https://partner.example/hooks/rip",
-      event_types: ["card.price_updated"],
-      filters: { game: "pokemon", min_change_pct: 5 },
-    });
-    expect(fx.last.body).toEqual({
-      url: "https://partner.example/hooks/rip",
-      event_types: ["card.price_updated"],
-      filters: { game: "pokemon", min_change_pct: 5 },
-    });
-  });
-
   it("register omits event_types entirely when not given (subscribe to everything)", async () => {
     const fx = mockFetch([
       { status: 201, body: { success: true, data: { ...registration, event_types: [], signing_secret: "b".repeat(64) } } },
@@ -358,6 +335,15 @@ describe("cardos.webhooks", () => {
     expect(fx.last.url.pathname).toBe("/api/v1/webhooks");
     expect(hooks).toHaveLength(1);
     expect(hooks[0]!.url).toBe("https://partner.example/hooks/rip");
+  });
+
+  it("get unwraps data.webhook and maps 404 to NotFoundError", async () => {
+    const fx = mockFetch([ok({ webhook: registration }), fail(404, "not_found", "Webhook not found")]);
+    const c = makeClient(fx);
+    const hook = await c.webhooks.get(3);
+    expect(fx.last.url.pathname).toBe("/api/v1/webhooks/3");
+    expect(hook.id).toBe(3);
+    await expect(c.webhooks.get(999)).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("delete sends DELETE and returns { id, deleted }", async () => {

@@ -69,12 +69,13 @@ const reserved: Purchase = { ...REVEALED, status: "RESERVED", items: undefined, 
 describe("gacha.catalog", () => {
   it("GETs the catalog, forwards filters, and unwraps data.tiers", async () => {
     const fx = mockFetch([ok({ tiers: [TIER], games: [{ id: "pokemon", label: "Pokémon" }] })]);
-    const tiers = await makeClient(fx).gacha.catalog({ game: "pokemon", active: true });
+    const tiers = await makeClient(fx).gacha.catalog({ game: "pokemon", active: true, fresh: true });
 
     expect(fx.last.method).toBe("GET");
     expect(fx.last.url.pathname).toBe("/api/v1/mystery/catalog");
     expect(fx.last.url.searchParams.get("game")).toBe("pokemon");
     expect(fx.last.url.searchParams.get("active")).toBe("true");
+    expect(fx.last.url.searchParams.get("fresh")).toBe("true");
     expect(tiers).toHaveLength(1);
     expect(tiers[0]!.price_usdc).toBe("25");
   });
@@ -455,10 +456,12 @@ describe("gacha.price", () => {
         updated_at: "2026-09-01T09:00:00.000Z",
       }),
     ]);
-    const quote = await makeClient(fx).gacha.price({ token_id: "77123" });
+    const quote = await makeClient(fx).gacha.price({ token_id: "77123", fresh: true });
 
     expect(fx.last.url.pathname).toBe("/api/v1/mystery/price");
     expect(fx.last.url.searchParams.get("token_id")).toBe("77123");
+    // The cache bypass rides along on the cached reads, on its own budget.
+    expect(fx.last.url.searchParams.get("fresh")).toBe("true");
     expect(fx.last.url.searchParams.has("card_id")).toBe(false);
     expect(quote.buyback_price_usdc).toBe("350.625000");
   });
@@ -477,9 +480,9 @@ describe("gacha.games", () => {
   it("reads data.games from the catalog endpoint", async () => {
     const fx = mockFetch([ok({ tiers: [], games: [{ id: "pokemon", label: "Pokémon" }] })]);
     const c = makeClient(fx);
-    const games = await c.gacha.games();
+    const games = await c.gacha.games({ fresh: true });
     expect(fx.last.url.pathname).toBe("/api/v1/mystery/catalog");
-    expect(fx.last.url.search).toBe("");
+    expect(fx.last.url.search).toBe("?fresh=true");
     expect(games).toEqual([{ id: "pokemon", label: "Pokémon" }]);
   });
 });

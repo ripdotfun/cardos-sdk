@@ -1,6 +1,6 @@
 {
   "name": "@ripdotfun/cardos-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Official TypeScript SDK for the CardOS APIs — gacha / mystery packs, instant packs, custodial wallets, buybacks, redemptions, webhooks, and the Card Data catalog.",
   "license": "MIT",
   "type": "module",

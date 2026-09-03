@@ -20,11 +20,16 @@ import type { Address, IsoDate, TxHash, UsdcString } from "./common.js";
 /**
  * Every event you can subscribe to.
  *
- * One registry serves both CardOS products, so the same four endpoints manage
- * Gacha / Instant Pack subscriptions (`purchase.*`, `buyback.*`, `payout.*`, …)
- * and Card Data subscriptions (`card.*`, `expansion.released`,
- * `sealed.price_updated`, `population.updated`). Which events you receive
- * depends entirely on the `event_types` you register with.
+ * One registry, one signing scheme and one delivery log serve every CardOS
+ * product, and the catalogue is the commerce one: `purchase.*`,
+ * `instant_purchase.*`, `buyback.*`, `sellback.*`, `redemption.*`, `payout.*`,
+ * `pool.*` and `deposit.credited`. Which of them you receive depends entirely
+ * on the `event_types` you register with; omit them to receive everything.
+ *
+ * The catalog events described on the Card Data webhooks page (price moves, new
+ * cards, new expansions, population refreshes) are not live yet — registering
+ * for one is rejected with a `400 invalid_event_types` — so they are not listed
+ * here.
  */
 export const WEBHOOK_EVENT_TYPES = [
   // Gacha / Instant Pack
@@ -49,13 +54,6 @@ export const WEBHOOK_EVENT_TYPES = [
   "sellback.confirmed",
   "payout.statement_ready",
   "payout.paid",
-  // Card Data
-  "card.price_updated",
-  "card.added",
-  "card.updated",
-  "expansion.released",
-  "sealed.price_updated",
-  "population.updated",
 ] as const;
 
 /** One of the documented delivered event names. */
@@ -92,33 +90,18 @@ export interface WebhookRegistrationWithSecret extends WebhookRegistration {
   signing_secret: string;
 }
 
-/**
- * Narrows which deliveries a Card Data subscription receives. Without them
- * `card.price_updated` is a firehose across the whole catalog.
- */
-export interface WebhookFilters {
-  /** Only events for one game id. */
-  game?: string;
-  /** Only cards in one expansion. */
-  expansion_id?: string;
-  /** A watchlist of up to 5,000 card ids for this endpoint. */
-  card_ids?: readonly string[];
-  /** Only fire when the move is at least this large, in either direction. */
-  min_change_pct?: number;
-  /** Only graded-tier moves, e.g. `{ company: "PSA", grade: "10" }`. */
-  grade?: { company?: string; grade?: string };
-}
-
 export interface WebhookRegisterParams {
   /**
    * Public HTTPS endpoint. Private, loopback and link-local URLs are rejected —
    * the endpoint must be publicly reachable.
    */
   url: string;
-  /** Subscribe to a subset. Omit to receive every event. */
+  /**
+   * Subscribe to a subset. Omit to receive every event. An unknown name
+   * anywhere in the array rejects the whole registration with a
+   * `400 invalid_event_types`.
+   */
   event_types?: readonly WebhookEventType[];
-  /** Narrow the Card Data events this endpoint receives. */
-  filters?: WebhookFilters;
 }
 
 /** `{ id, deleted: true }` from `DELETE /api/v1/webhooks/{id}`. */
@@ -424,68 +407,6 @@ export interface WebhookPayoutData {
   [field: string]: unknown;
 }
 
-// --- Card Data payloads ---------------------------------------------------
-
-/**
- * `card.price_updated` — a card's market value moved past the endpoint's
- * `min_change_pct` filter. `condition` is present on raw moves, `grade` on
- * graded-tier moves.
- *
- * Card Data prices are JSON numbers, the one place this API does not use money
- * strings.
- */
-export interface WebhookCardPriceUpdatedData {
-  card_id: string;
-  game: string;
-  previous: number | null;
-  current: number | null;
-  change_pct: number;
-  condition?: string;
-  grade?: string;
-}
-
-/** `card.added` — a new card was ingested, usually with a set release. */
-export interface WebhookCardAddedData {
-  card_id: string;
-  game: string;
-  expansion_id: string;
-}
-
-/** `card.updated` — card metadata was corrected; `changed` names the fields. */
-export interface WebhookCardUpdatedData {
-  card_id: string;
-  game: string;
-  changed: string[];
-}
-
-/** `expansion.released` — an expansion's release date passed and its cards went live. */
-export interface WebhookExpansionReleasedData {
-  expansion_id: string;
-  game: string;
-  /** Cards in the expansion. */
-  total: number;
-}
-
-/** `sealed.price_updated` — a sealed product's market value moved past your threshold. */
-export interface WebhookSealedPriceUpdatedData {
-  product_id: string;
-  game: string;
-  previous: number | null;
-  current: number | null;
-  change_pct: number;
-}
-
-/** `population.updated` — a grading company published a new report for a watched card. */
-export interface WebhookPopulationUpdatedData {
-  card_id: string;
-  game: string;
-  /** Grading company, e.g. `PSA`. */
-  company: string;
-  /** Graded population total. */
-  total: number;
-  gem_rate: number | null;
-}
-
 // --- the discriminated union ----------------------------------------------
 
 interface WebhookEventOf<E extends WebhookEventType, D> extends WebhookEventBase {
@@ -574,24 +495,6 @@ export type WebhookPayoutStatementReadyEvent = WebhookEventOf<
   WebhookPayoutData
 >;
 export type WebhookPayoutPaidEvent = WebhookEventOf<"payout.paid", WebhookPayoutData>;
-export type WebhookCardPriceUpdatedEvent = WebhookEventOf<
-  "card.price_updated",
-  WebhookCardPriceUpdatedData
->;
-export type WebhookCardAddedEvent = WebhookEventOf<"card.added", WebhookCardAddedData>;
-export type WebhookCardUpdatedEvent = WebhookEventOf<"card.updated", WebhookCardUpdatedData>;
-export type WebhookExpansionReleasedEvent = WebhookEventOf<
-  "expansion.released",
-  WebhookExpansionReleasedData
->;
-export type WebhookSealedPriceUpdatedEvent = WebhookEventOf<
-  "sealed.price_updated",
-  WebhookSealedPriceUpdatedData
->;
-export type WebhookPopulationUpdatedEvent = WebhookEventOf<
-  "population.updated",
-  WebhookPopulationUpdatedData
->;
 
 /**
  * An event whose name this SDK version does not know (a newer server emitting
@@ -641,13 +544,7 @@ export type WebhookEvent =
   | WebhookPoolItemPulledEvent
   | WebhookSellbackConfirmedEvent
   | WebhookPayoutStatementReadyEvent
-  | WebhookPayoutPaidEvent
-  | WebhookCardPriceUpdatedEvent
-  | WebhookCardAddedEvent
-  | WebhookCardUpdatedEvent
-  | WebhookExpansionReleasedEvent
-  | WebhookSealedPriceUpdatedEvent
-  | WebhookPopulationUpdatedEvent;
+  | WebhookPayoutPaidEvent;
 
 /**
  * `WebhookEvent` plus the open-ended `WebhookUnknownEvent`. Widen to this when

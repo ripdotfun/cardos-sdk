@@ -175,19 +175,12 @@ export interface CardPriceTrend {
  * card, the single `sealed` rung on a sealed product. Amounts are numbers in
  * the payload's `currency`.
  *
- * `condition` and `price` are always there; the band and the comp count are
- * present when available, so treat them as extra detail rather than as fields
- * you can build a layout around.
+ * Two fields only. The value band and the comp count live on the graded
+ * entries, not here.
  */
 export interface CardPricingCondition {
   condition: string;
   price: number;
-  /** Low end of the value band for this rung. Present when available. */
-  low?: number;
-  /** High end of the value band for this rung. Present when available. */
-  high?: number;
-  /** Recent sold comps behind this rung. Present when available. */
-  sold_count?: number;
 }
 
 /** Aggregate sold-comp band for a graded bucket. `cards.prices()` only. */
@@ -228,10 +221,11 @@ export interface CardGradedPrice {
 }
 
 /**
- * A card's pricing object. Present inline on a `Card` only with
- * `include: "prices"`, and always on `cards.prices(id)` — the dedicated
- * endpoint returns strictly more (graded `band` / `last_sold_at`) for the same
- * credit.
+ * A card's pricing object. Present inline on a `Card` with `include: "prices"`
+ * — and then always present, even for a card we hold nothing for: `market`
+ * comes back `null` and the two arrays empty rather than the key being dropped.
+ * Also the whole payload of `cards.prices(id)`, which returns strictly more
+ * (graded `band` / `last_sold_at`) for the same credit.
  */
 export interface CardPricing {
   /** ISO currency of every amount in the payload. Always `"USD"` today. */
@@ -242,14 +236,13 @@ export interface CardPricing {
   market_updated_at?: string;
   /** `true` when the sales window behind `market` is thin — treat as indicative. */
   is_stale: boolean;
-  /** Signed percentage change over the trailing week. */
-  trend_7d?: CardPriceTrend;
-  /** Signed percentage change over 30 days. Present when available. */
-  trend_30d?: CardPriceTrend;
-  /** Signed percentage change over 90 days. Present when available. */
-  trend_90d?: CardPriceTrend;
   /**
-   * The raw ladder for this card's variant. Omitted or empty when we hold no
+   * The trailing week, and the only window a card carries — there is no
+   * `trend_30d` or `trend_90d`. Omitted when there is no move to report.
+   */
+  trend_7d?: CardPriceTrend;
+  /**
+   * The raw ladder for this card's variant. Empty when we hold no
    * per-condition data for the card, so read it with `?? []`.
    */
   conditions?: CardPricingCondition[];
@@ -343,9 +336,11 @@ export interface Card {
   life?: string;
 
   /**
-   * Present only when the request asked for `include: "prices"` — and `null`
-   * there for a card we hold no pricing at all for, so check the object before
-   * reaching into it.
+   * Present only when the request asked for `include: "prices"`, and then for
+   * every card: one we hold nothing for still gets the object, with
+   * `market: null` and empty arrays. Typed nullable because the best-practices
+   * guide tells integrators to code for `pricing: null` — check the object
+   * before reaching into it either way.
    */
   pricing?: CardPricing | null;
 }

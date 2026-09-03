@@ -42,7 +42,18 @@ import { Resource } from "./base.js";
 
 const BASE = "/api/v1/mystery";
 
-export interface CatalogParams extends RequestOverrides {
+/** The cached partner reads accept `fresh` to bypass the response cache. */
+export interface FreshOverride {
+  /**
+   * `true` bypasses the shared response cache and recomputes from source.
+   * Meant for a manual refresh, not for polling: it carries its own budget of
+   * 10 calls per minute per key, and past that you get a `429` while a plain
+   * read still answers from cache.
+   */
+  fresh?: boolean;
+}
+
+export interface CatalogParams extends RequestOverrides, FreshOverride {
   /** Filter by game id: `pokemon` | `onepiece` | `azuki`. */
   game?: string;
   /** Filter by what the tier yields, e.g. `card`. */
@@ -51,9 +62,9 @@ export interface CatalogParams extends RequestOverrides {
   active?: boolean;
 }
 
-export interface OddsParams extends RequestOverrides {}
+export interface OddsParams extends RequestOverrides, FreshOverride {}
 
-export interface FeedParams extends OffsetPageParams, RequestOverrides {
+export interface FeedParams extends OffsetPageParams, RequestOverrides, FreshOverride {
   /** Filter to one game (catalog ids). Tiers with no game metadata drop out when set. */
   game?: string;
 }
@@ -105,7 +116,7 @@ interface SubmitPurchaseParamsBase extends RequestOverrides {
 /** Params for `submit()`. The identity that signed the purchase is required. */
 export type SubmitPurchaseParams = SubmitPurchaseParamsBase & UserIdentity;
 
-interface PriceParamsBase extends RequestOverrides {
+interface PriceParamsBase extends RequestOverrides, FreshOverride {
   /** `CARD` or `GRADED_CARD`, to disambiguate a token id that exists as both (the slab wins otherwise). */
   item_type?: PricedItemType;
 }
@@ -145,7 +156,7 @@ export class GachaResource extends Resource {
    * `GET /api/v1/mystery/catalog` (same call as `catalog()`, reads `data.games`)
    * · scope `read:catalog`.
    */
-  async games(params?: RequestOverrides): Promise<GachaGameRef[]> {
+  async games(params?: Pick<CatalogParams, keyof RequestOverrides | "fresh">): Promise<GachaGameRef[]> {
     const { overrides, rest } = this.split(params);
     const data = await this.http.data<{ games?: GachaGameRef[] }>({
       ...overrides,
@@ -157,14 +168,18 @@ export class GachaResource extends Resource {
   }
 
   /**
-   * The rarity breakdown, what is currently available and the average item
-   * value for one tier — what you show a player before they buy.
+   * The rarity breakdown, what is currently available and the value per item
+   * for one tier — what you show a player before they buy.
    *
    * `GET /api/v1/mystery/catalog/{tier_id}/odds` · scope `read:catalog`.
    *
-   * Discriminate the result on `scope`: `"inventory_fallback"` reports
-   * `total_available` / `average_item_value` per rarity group;
-   * `"onchain"` reports the per-slot weights instead. Handle both.
+   * Read `scope` first and branch on it rather than probing for fields.
+   * Normally it is `"onchain"`: the authoritative odds governed by the pool
+   * contract's own tier weights, with the per-slot breakdown. If the chain is
+   * briefly unreachable you get `"inventory_fallback"` instead —
+   * availability-derived odds (`total_available` / `average_item_value`), a
+   * different set of fields, and NOT the published pull rates, so only publish
+   * odds from the `"onchain"` shape.
    *
    * Errors: `400 invalid_tier` (not a known tier).
    */

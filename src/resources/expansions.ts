@@ -34,8 +34,9 @@ export class ExpansionsResource extends Resource {
    * supported here. `language` defaults to `en`; the applied value comes back
    * as `page.language`.
    *
-   * Errors: `invalid_query`, `query_too_complex`, `invalid_pagination`,
-   * `invalid_language` — all 400 `ValidationError`.
+   * Errors: `parse_error`, `unknown_field`, `invalid_value`,
+   * `query_too_complex`, `invalid_select`, `invalid_include`,
+   * `invalid_pagination`, `invalid_language` — all 400 `ValidationError`.
    */
   async search(params: ExpansionSearchParams = {}): Promise<NumberedPage<Expansion>> {
     const { overrides, rest } = this.split(params);
@@ -89,8 +90,9 @@ export class ExpansionsResource extends Resource {
    * every Japanese set.
    *
    * Errors: `not_found` (404) for an unknown expansion or one belonging to
-   * another game; `invalid_query`, `query_too_complex`, `invalid_pagination`,
-   * `invalid_language`, `invalid_distinct` (400).
+   * another game; `parse_error`, `unknown_field`, `invalid_value`,
+   * `query_too_complex`, `invalid_select`, `invalid_include`,
+   * `invalid_pagination`, `invalid_language`, `invalid_distinct` (400).
    */
   async cards(id: string, params: CardSearchParams = {}): Promise<NumberedPage<Card>> {
     const { overrides, rest } = this.split(params);

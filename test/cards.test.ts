@@ -150,9 +150,9 @@ describe("cards.search", () => {
     expect(all.map((x) => x.id)).toEqual(["a", "b", "c", "d"]);
   });
 
-  it("maps 400 invalid_query to ValidationError with the details", async () => {
+  it("maps 400 unknown_field to ValidationError with the details", async () => {
     const fx = mockFetch([
-      fail(400, "invalid_query", "Unknown field 'colours'", { details: { position: 12 } }),
+      fail(400, "unknown_field", "Unknown field 'colours'", { details: { position: 12 } }),
     ]);
     const c = makeClient(fx);
 
@@ -162,7 +162,7 @@ describe("cards.search", () => {
 
     expect(err).toBeInstanceOf(ValidationError);
     expect(err.status).toBe(400);
-    expect(err.code).toBe("invalid_query");
+    expect(err.code).toBe("unknown_field");
     expect(err.message).toContain("Unknown field");
     expect(err.details).toEqual({ position: 12 });
   });
@@ -243,10 +243,8 @@ describe("cards.prices", () => {
           market_updated_at: "2026-09-01T04:15:00.000Z",
           is_stale: false,
           trend_7d: { direction: "up", percent: 4.2 },
-          trend_30d: { direction: "up", percent: 11.8 },
-          trend_90d: { direction: "down", percent: -3.4 },
           conditions: [
-            { condition: "NM", price: 412.5, low: 380, high: 460, sold_count: 12 },
+            { condition: "NM", price: 412.5 },
             { condition: "LP", price: 350.1 },
           ],
           graded: [
@@ -273,18 +271,11 @@ describe("cards.prices", () => {
     expect(fx.last.url.pathname).toBe("/api/v1/pokemon/cards/sv3pt5-223/prices");
     expect(prices.card_id).toBe("sv3pt5-223");
     expect(prices.pricing.market).toBe(412.5);
-    // The band and comp count on a rung are present when available, and the
-    // rung beside it shows they can be absent.
-    expect(prices.pricing.conditions?.[0]).toEqual({
-      condition: "NM",
-      price: 412.5,
-      low: 380,
-      high: 460,
-      sold_count: 12,
-    });
+    // A rung carries `condition` and `price` — nothing else. The band and the
+    // comp count live on the graded entries.
+    expect(prices.pricing.conditions?.[0]).toEqual({ condition: "NM", price: 412.5 });
     expect(prices.pricing.conditions?.[1]).toEqual({ condition: "LP", price: 350.1 });
-    expect(prices.pricing.trend_30d?.percent).toBe(11.8);
-    expect(prices.pricing.trend_90d?.direction).toBe("down");
+    expect(prices.pricing.trend_7d?.percent).toBe(4.2);
     expect(prices.pricing.graded[0]!.band?.count).toBe(37);
     expect(prices.pricing.graded[0]!.last_sold_at).toBe("2026-08-28T18:02:00.000Z");
   });

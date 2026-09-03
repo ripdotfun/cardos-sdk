@@ -28,8 +28,9 @@ export class WebhooksResource extends Resource {
    *
    * The response is the ONLY time `signing_secret` is ever returned — store it
    * now (it is what `verifyWebhookSignature` needs) because no later call can
-   * read it back. Omit `event_types` to receive every event; pass `filters` to
-   * narrow the Card Data events an endpoint receives.
+   * read it back. Omit `event_types` entirely to receive every event; an
+   * unknown name anywhere in the array rejects the whole registration with a
+   * `400 invalid_event_types` naming the ones it did not recognise.
    *
    * The URL must be publicly reachable over HTTPS — private, loopback and
    * link-local URLs are rejected. Partners are capped at 20 webhooks, and the
@@ -46,7 +47,6 @@ export class WebhooksResource extends Resource {
       body: {
         url: rest.url,
         ...(rest.event_types ? { event_types: [...rest.event_types] } : {}),
-        ...(rest.filters ? { filters: rest.filters } : {}),
       },
     });
   }
@@ -65,6 +65,24 @@ export class WebhooksResource extends Resource {
       path: BASE,
     });
     return data.webhooks ?? [];
+  }
+
+  /**
+   * One webhook by id. `GET /api/v1/webhooks/{id}`. Scope `webhooks:manage`.
+   *
+   * Use it to confirm a subscription after registering, or to check which event
+   * types an endpoint is on before you change them. No signing secret is ever
+   * returned here — it is shown once, at registration, and nowhere else. Throws
+   * `NotFoundError` (404) when no webhook with that id is on your key.
+   */
+  async get(id: number, opts?: RequestOverrides): Promise<WebhookRegistration> {
+    const { overrides } = this.split(opts);
+    const data = await this.http.data<{ webhook: WebhookRegistration }>({
+      ...overrides,
+      method: "GET",
+      path: `${BASE}/${id}`,
+    });
+    return data.webhook;
   }
 
   /**

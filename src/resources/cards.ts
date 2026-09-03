@@ -105,9 +105,14 @@ export class CardsResource extends Resource {
    * default steps aside — the value the server applied comes back as
    * `page.language`.
    *
-   * Errors: `invalid_query` / `query_too_complex` (400, `details.position`
-   * points at the offending character), `invalid_pagination`,
-   * `invalid_language`, `invalid_distinct` — all `ValidationError`.
+   * Errors, all 400 `ValidationError`: `parse_error` (malformed `q` syntax),
+   * `unknown_field` (a term or `orderBy` key this resource does not register —
+   * rejected, never ignored, with a did-you-mean suggestion), `invalid_value`
+   * (the field exists, the value does not fit it), `query_too_complex` (over
+   * 512 chars, 20 terms, 5 levels of nesting, 3 `orderBy` keys, or a value that
+   * breaks the wildcard guardrails), `invalid_select`, `invalid_include`,
+   * `invalid_pagination`, `invalid_language`, `invalid_distinct`. The first
+   * three carry `details.position`, the 0-based offset of the offending token.
    */
   async search(params: CardSearchParams = {}): Promise<NumberedPage<Card>> {
     const { overrides, rest } = this.split(params);

@@ -100,11 +100,13 @@ async function main(): Promise<void> {
   console.log(`  tier:    ${summary.by_product.tier.share_usdc} @ ${summary.by_product.tier.share_bps} bps`);
   console.log(`  instant: ${summary.by_product.instant.share_usdc} @ ${summary.by_product.instant.share_bps} bps`);
 
-  // Closed statements, newest first.
+  // Closed statements, newest first, plus what is still owed.
   const payouts = await cardos.revenue.payouts({ limit: 20 });
   for (const p of payouts.items) {
     console.log(`  ${p.period.from}–${p.period.to} ${p.status} ${p.net_usdc} net`);
   }
+  const owed = await cardos.revenue.outstanding();
+  console.log(`outstanding ${owed.outstanding_usdc} USDC, owed ${owed.total_owed_usdc} in total`);
 }
 
 main().catch((err) => {

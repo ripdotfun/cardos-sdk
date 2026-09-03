@@ -58,7 +58,8 @@ export class SealedResource extends Resource {
    * `starter_deck` is the one people try, and it has never existed. `language`
    * defaults to `en`; `orderBy` sorts on `name`, `price`, `release_date`, `id`.
    *
-   * Errors: `invalid_value`, `invalid_query`, `query_too_complex`,
+   * Errors: `invalid_value`, `parse_error`, `unknown_field`,
+   * `query_too_complex`, `invalid_select`, `invalid_include`,
    * `invalid_pagination`, `invalid_language` — all 400 `ValidationError`.
    */
   async search(params: SealedSearchParams = {}): Promise<NumberedPage<SealedProduct>> {

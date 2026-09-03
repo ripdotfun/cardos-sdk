@@ -368,6 +368,9 @@ summary.by_product.instant;   // same shape; instant packs have no sell-backs to
 
 const payouts = await cardos.revenue.payouts({ limit: 20 });
 payouts.items;                // closed statements, newest first
+await cardos.revenue.outstanding();   // { outstanding_usdc, accruing, total_owed_usdc }
+                                      //   accruing = your live share of activity no
+                                      //   statement covers yet; null on the POOL model
 
 await cardos.revenue.getPayoutWallet();
 await cardos.revenue.setPayoutWallet({ address: "0x…", chain: "base" });
@@ -411,8 +414,11 @@ page.totalCount;   // total matches
 const card = await cardos.cards.get("swsh7-215", { include: "prices" });
 const prices = await cardos.cards.prices("swsh7-215");
 // { card_id, pricing: { currency, market, market_updated_at, is_stale, trend_7d,
-//   conditions: [{ condition: 'NM', price, low, high, sold_count }],
-//   graded: [{ company: 'PSA', grade: '10', value, low, high, confidence }] } }
+//   conditions: [{ condition: 'NM', price }],   // those two fields, nothing else
+//   graded: [{ company: 'PSA', grade: '10', value, low, high, confidence,
+//              value_kind, sold_count, trend?, last_sold_at?, band? }] } }
+// Amounts are JSON numbers here, not decimal strings; `trend_7d` is the only
+// window a card carries. `band` / `last_sold_at` come from this endpoint only.
 
 const printings = await cardos.cards.printings("swsh7-215");   // the same card, every finish
 const sets = await cardos.expansions.search({ q: "release_date:[2024-01-01 TO *]" });
@@ -437,10 +443,12 @@ code:OP01-016
 product_type:booster_box expansion.id:sv3pt5  # sealed
 ```
 
-Caps: 512 characters, 20 terms, 5 levels of nesting, `orderBy` at most 3 keys — past those
-it is a `400 query_too_complex`. A malformed `q` is a `400 invalid_query` with `details.position`,
-the 0-based character offset, in `err.details`; unknown fields, leading wildcards and unquoted
-spaces are rejected rather than ignored.
+Caps: 512 characters, 20 terms, 5 levels of nesting, `orderBy` at most 3 keys, and the wildcard
+guardrails (no leading `*`, at most 3 per value, at least 2 literal characters) — past those it
+is a `400 query_too_complex`. Malformed syntax is a `400 parse_error`; a term or `orderBy` key
+the resource does not register is a `400 unknown_field` with a did-you-mean suggestion; a value
+that does not fit its field is a `400 invalid_value`. All three carry `details.position`, the
+0-based character offset, in `err.details` — unknown fields are rejected, never ignored.
 
 **Shared params.** `language` (defaults to `en` on search; comma list, or `"all"` — the
 applied value comes back on the page), `orderBy` (`-` for DESC, missing values sort last),
@@ -487,6 +495,7 @@ hook.signing_secret;  // ← a 64-hex string, returned exactly ONCE, at creation
                       //   Store it now; `list()` never returns secrets.
 
 await cardos.webhooks.list();          // no secrets
+await cardos.webhooks.get(hook.id);    // one registration, also without its secret
 await cardos.webhooks.delete(hook.id);
 await cardos.webhooks.deliveries({ limit: 20 });  // the debug log: status, attempts, last_error
 ```
@@ -558,18 +567,22 @@ event.delivery_id;  // X-Mystery-Delivery — dedupe on this
 event.timestamp;    // X-Mystery-Timestamp, as unix ms
 ```
 
-One registry serves both products, so `WEBHOOK_EVENT_TYPES` exports every event:
+One registry, one signing scheme and one delivery log serve every CardOS product, and
+`WEBHOOK_EVENT_TYPES` exports the 21 events you can subscribe to today
+([catalogue](https://business.getcardos.com/gacha-docs/webhooks-guide)):
 
-- **Partner** ([catalogue](https://business.getcardos.com/gacha-docs/webhooks-guide)) —
-  `deposit.credited`, `purchase.reserved|submitted|fulfilled|refunded|failed`,
-  `instant_purchase.reserved|submitted|fulfilled|refunded|failed`,
-  `buyback.confirmed|transfer_held|card_transferred|transfer_failed`,
-  `redemption.prepared|updated`, `pool.item_pulled`, `sellback.confirmed`,
-  `payout.statement_ready`, `payout.paid`.
-- **Card Data** ([catalogue](https://business.getcardos.com/docs/webhooks)) —
-  `card.price_updated`, `card.added`, `card.updated`, `expansion.released`,
-  `sealed.price_updated`, `population.updated`. Register `card.price_updated` with filters:
-  unfiltered it is a firehose.
+`deposit.credited`, `purchase.reserved|submitted|fulfilled|refunded|failed`,
+`instant_purchase.reserved|submitted|fulfilled|refunded|failed`,
+`buyback.confirmed|transfer_held|card_transferred|transfer_failed`,
+`redemption.prepared|updated`, `pool.item_pulled`, `sellback.confirmed`,
+`payout.statement_ready`, `payout.paid`.
+
+Omit `event_types` entirely to receive all of them; an unknown name anywhere in the array
+rejects the whole registration with a `400 invalid_event_types`. The catalog events on the
+[Card Data webhooks page](https://business.getcardos.com/docs/webhooks) (price moves, new
+cards, new expansions, population refreshes) and the `filters` block that will narrow them
+are **not live yet**, so the SDK does not offer them; keep the catalog in sync with a
+scheduled re-read until they ship.
 
 `sellback.*` and `payout.*` are TIER-model events; `buyback.*` and `pool.item_pulled` belong to
 the legacy POOL model and don't fire on a TIER account. `payout.statement_ready` and `payout.paid`
@@ -577,8 +590,11 @@ carry the whole frozen statement, and `sellback.confirmed` the `token_ids`, `tot
 `transaction_hash`, so your ledger can mirror ours from the webhook alone.
 
 `purchase.fulfilled` carries the revealed `items[]` inline so you rarely need to call back,
-but hydration is best-effort — fall back to `cardos.gacha.getPurchase(id)` when the key is
-absent. `instant_purchase.fulfilled` carries the whole serialized purchase, `cards` included.
+but hydration is best-effort and the key is *omitted entirely* rather than sent empty when it
+fails — treat a delivery with no `items` as "fetch the purchase", not as a pull that yielded
+nothing, and fall back to `cardos.gacha.getPurchase(id)`. `instant_purchase.fulfilled` carries
+the whole serialized purchase, `cards` included; when hydration fails it degrades to the core
+fields and, at worst, to `id` / `purchase_id` / `status`, the only three guaranteed.
 
 Just need the boolean?
 
@@ -635,7 +651,7 @@ machine string the wire calls `error` — not on `err.message`, which is for hum
 
 | Class | Status | Typical `code` |
 |---|---|---|
-| `ValidationError` | 400 | `invalid_tier`, `invalid_query`, `invalid_address`, `tx_unverified` |
+| `ValidationError` | 400 | `invalid_tier`, `parse_error`, `unknown_field`, `invalid_address`, `tx_unverified` |
 | `AuthenticationError` | 401 | `unauthorized` — missing / invalid / expired key |
 | `InsufficientFundsError` | 402 | `insufficient_funds` (end user's wallet balance), `insufficient_credits` (your Card Data balance) |
 | `PermissionError` | 403 | missing scope, or a non-partner key |
@@ -754,7 +770,11 @@ response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-R
 `Retry-After`, which the client honours. 429s and 503 overload shedding happen before metering, so
 they are never billed.
 
-`gacha.price` is cached ~60 s server-side, so poll it no faster than that.
+`gacha.price` is cached ~60 s server-side, so poll it no faster than that. The cached partner
+reads — `gacha.catalog`, `gacha.games`, `gacha.odds`, `gacha.price` and the pool-wide feeds —
+take `{ fresh: true }` to bypass that cache and recompute from source. It is a manual refresh,
+not a polling mode: it carries its own budget of **10 calls per minute per key**, and past that
+you get a `429` while a plain read still answers from cache.
 
 Pagination limits: partner API `limit` 1–100 (default 50), `offset` 0–10 000; Card Data
 `page_size` 1–100 (default 100), `page × page_size` ≤ 10 000.
