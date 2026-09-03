@@ -1,0 +1,61 @@
+{
+  "name": "@cardos/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK for the CardOS APIs — gacha / mystery packs, instant packs, custodial wallets, buybacks, redemptions, webhooks, and the Card Data catalog.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "import": "./dist/webhooks.js",
+      "require": "./dist/webhooks.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit && vitest run",
+    "prepublishOnly": "pnpm run lint && pnpm run build"
+  },
+  "keywords": [
+    "cardos",
+    "rip.fun",
+    "gacha",
+    "mystery pack",
+    "tcg",
+    "pokemon",
+    "one piece",
+    "card prices",
+    "sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ripdotfun/cardos-sdk.git"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
