@@ -68,24 +68,6 @@ export class WebhooksResource extends Resource {
   }
 
   /**
-   * One webhook by id. `GET /api/v1/webhooks/{id}`. Scope `webhooks:manage`.
-   *
-   * Not part of the published API reference — {@link list} is the documented
-   * way to read your registrations. No secret is returned. Throws
-   * `NotFoundError` (404) for an unknown id or one belonging to another
-   * partner.
-   */
-  async get(id: number, opts?: RequestOverrides): Promise<WebhookRegistration> {
-    const { overrides } = this.split(opts);
-    const data = await this.http.data<{ webhook: WebhookRegistration }>({
-      ...overrides,
-      method: "GET",
-      path: `${BASE}/${id}`,
-    });
-    return data.webhook;
-  }
-
-  /**
    * Unregister a webhook. `DELETE /api/v1/webhooks/{id}`. Scope `webhooks:manage`.
    *
    * Pending deliveries queued for it are dropped. Throws `NotFoundError` (404)

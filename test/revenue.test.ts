@@ -160,37 +160,6 @@ describe("revenue.payouts", () => {
   });
 });
 
-describe("revenue.outstanding", () => {
-  it("returns only the totals, not the statement rows", async () => {
-    const fx = mockFetch([
-      ok({
-        payouts: [PAYOUT],
-        outstanding_usdc: "0.000000",
-        accruing: {
-          since: "2026-07-01T00:00:00.000Z",
-          as_of: "2026-09-01T00:00:00.000Z",
-          qualifying_packs: 40,
-          instant_packs: 10,
-          sellback_count: 3,
-          gross_usdc: "1049.900000",
-          sellback_usdc: "120.000000",
-          net_usdc: "929.900000",
-          payout_usdc: "44.499000",
-          period_closes_at: "2026-10-01T00:00:00.000Z",
-        },
-        total_owed_usdc: "44.499000",
-      }),
-    ]);
-    const owed = await makeClient(fx).revenue.outstanding();
-
-    expect(fx.last.url.pathname).toBe("/api/v1/mystery/payouts");
-    expect(fx.last.url.searchParams.get("limit")).toBe("1");
-    expect(owed.total_owed_usdc).toBe("44.499000");
-    expect(owed.accruing!.period_closes_at).toBe("2026-10-01T00:00:00.000Z");
-    expect(owed).not.toHaveProperty("payouts");
-  });
-});
-
 describe("revenue payout wallet", () => {
   it("reads the active wallet", async () => {
     const fx = mockFetch([

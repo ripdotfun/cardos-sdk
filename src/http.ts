@@ -215,7 +215,7 @@ export class HttpClient {
   }
 }
 
-export const SDK_VERSION = "0.1.0";
+export const SDK_VERSION = "0.1.1";
 
 async function parseBody(res: Response): Promise<unknown> {
   const text = await res.text();

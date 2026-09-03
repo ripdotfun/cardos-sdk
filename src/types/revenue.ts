@@ -163,33 +163,6 @@ export interface RevenuePayout {
   paid_at: IsoDate | null;
 }
 
-/**
- * The share accrued on activity no statement covers yet, recomputed on every
- * read. `null` when your account has no revenue share.
- */
-export interface RevenueAccrual {
-  /** End of the newest closed statement, or `null` if there is none. */
-  since: IsoDate | null;
-  as_of: IsoDate;
-  qualifying_packs: number;
-  instant_packs: number;
-  sellback_count: number;
-  gross_usdc: UsdcString;
-  sellback_usdc: UsdcString;
-  net_usdc: UsdcString;
-  payout_usdc: UsdcString;
-  period_closes_at: IsoDate | null;
-}
-
-/** What you are owed right now — see `revenue.outstanding()`. */
-export interface RevenueOutstanding {
-  /** Total across unpaid (`PENDING`) statements. */
-  outstanding_usdc: UsdcString;
-  accruing: RevenueAccrual | null;
-  /** Unpaid statements plus the live accrual. */
-  total_owed_usdc: UsdcString;
-}
-
 /** The address your revenue share is paid to. */
 export interface PayoutWallet {
   /** Defaults to `"base"`. */

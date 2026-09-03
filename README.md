@@ -368,7 +368,6 @@ summary.by_product.instant;   // same shape; instant packs have no sell-backs to
 
 const payouts = await cardos.revenue.payouts({ limit: 20 });
 payouts.items;                // closed statements, newest first
-await cardos.revenue.outstanding();   // { outstanding_usdc, accruing, total_owed_usdc }
 
 await cardos.revenue.getPayoutWallet();
 await cardos.revenue.setPayoutWallet({ address: "0x…", chain: "base" });
@@ -488,7 +487,6 @@ hook.signing_secret;  // ← a 64-hex string, returned exactly ONCE, at creation
                       //   Store it now; `list()` never returns secrets.
 
 await cardos.webhooks.list();          // no secrets
-await cardos.webhooks.get(hook.id);
 await cardos.webhooks.delete(hook.id);
 await cardos.webhooks.deliveries({ limit: 20 });  // the debug log: status, attempts, last_error
 ```
@@ -756,10 +754,7 @@ response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-R
 `Retry-After`, which the client honours. 429s and 503 overload shedding happen before metering, so
 they are never billed.
 
-Some cached partner reads — `gacha.catalog`, `gacha.odds`, `gacha.price`, the pool-wide feeds —
-accept `{ fresh: true }` to force a recompute. Leave it off for normal polling; `gacha.price` is
-cached ~60 s. Forcing a recompute is itself rate-limited more tightly than the ordinary read,
-so treat it as an escape hatch, not a polling mode.
+`gacha.price` is cached ~60 s server-side, so poll it no faster than that.
 
 Pagination limits: partner API `limit` 1–100 (default 50), `offset` 0–10 000; Card Data
 `page_size` 1–100 (default 100), `page × page_size` ≤ 10 000.

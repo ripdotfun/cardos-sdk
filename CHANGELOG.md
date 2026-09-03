@@ -3,7 +3,15 @@
 All notable changes to `@ripdotfun/cardos-sdk` are recorded here. This project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.1.0 — Unreleased
+## 0.1.1 — 2026-09-03
+
+- Removed `buyback.createForPurchase()`, `buyback.get()`, `webhooks.get()`,
+  `revenue.outstanding()` and the `fresh` option: none of them are part of the
+  published API reference. Use `buyback.create()`, `buyback.offers()`,
+  `webhooks.list()` and `revenue.payouts()`.
+- Source maps are no longer shipped in the package.
+
+## 0.1.0 — 2026-09-03
 
 Initial public release.
 

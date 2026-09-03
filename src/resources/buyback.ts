@@ -19,7 +19,6 @@ import type {
   BuybackAcceptPrepareParams,
   BuybackAcceptPrepareResult,
   BuybackAcceptResult,
-  BuybackCreateForPurchaseParams,
   BuybackCreateParams,
   BuybackOffer,
   BuybackOfferSummary,
@@ -58,37 +57,6 @@ export class BuybackResource extends Resource {
   }
 
   /**
-   * Create a buyback offer against one of your purchases (201).
-   *
-   * `POST /api/v1/mystery/buyback/{purchase_id}` — scope `packs:buyback`,
-   * POOL model only. The path segment accepts EITHER a purchase id or a token
-   * id: when it matches one of your purchases the purchase-linked path runs
-   * (idempotent per purchase + token); otherwise it falls through to the exact
-   * behaviour of {@link create}. Purchase ids take precedence, so use
-   * {@link create} for an unambiguous token-first offer.
-   *
-   * Pass `token_id` in the body when the purchase revealed multiple items.
-   *
-   * This purchase-scoped route is not covered by the published Gacha docs —
-   * {@link create} is the documented way to make an offer.
-   *
-   * Notable errors: 404 `token_not_found`, 409 `not_fulfilled` /
-   * `not_eligible` / `value_unknown`.
-   */
-  createForPurchase(
-    purchaseIdOrToken: number | string,
-    params?: BuybackCreateForPurchaseParams,
-  ): Promise<BuybackOffer> {
-    const { overrides, rest } = this.split(params);
-    return this.http.data<BuybackOffer>({
-      ...overrides,
-      method: "POST",
-      path: `/api/v1/mystery/buyback/${encodeURIComponent(String(purchaseIdOrToken))}`,
-      body: rest,
-    });
-  }
-
-  /**
    * Your buyback offers on one on-chain token, across both forms — token-first
    * and purchase-linked (`purchase_id` is `null` for token-first ones).
    *
@@ -105,30 +73,6 @@ export class BuybackResource extends Resource {
         method: "GET",
         path: "/api/v1/mystery/buyback",
         query: { token_id: rest.token_id },
-      })
-      .then((d) => d.offers ?? []);
-  }
-
-  /**
-   * Buyback offers by purchase id OR token id.
-   *
-   * `GET /api/v1/mystery/buyback/{purchase_id}` — scope `packs:read`, POOL
-   * model only. A value that is not one of your purchases resolves token-first,
-   * identical to {@link offers}. Rows looked up by purchase id may omit
-   * `purchase_id` entirely, so treat that field as optional.
-   *
-   * Not covered by the published Gacha docs — {@link offers} is the documented
-   * way to read a token's offers.
-   */
-  get(
-    purchaseIdOrToken: number | string,
-    opts?: RequestOverrides,
-  ): Promise<BuybackOfferSummary[]> {
-    return this.http
-      .data<{ offers: BuybackOfferSummary[] }>({
-        ...(opts ?? {}),
-        method: "GET",
-        path: `/api/v1/mystery/buyback/${encodeURIComponent(String(purchaseIdOrToken))}`,
       })
       .then((d) => d.offers ?? []);
   }

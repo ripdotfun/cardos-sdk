@@ -360,15 +360,6 @@ describe("cardos.webhooks", () => {
     expect(hooks[0]!.url).toBe("https://partner.example/hooks/rip");
   });
 
-  it("get unwraps data.webhook and maps 404 to NotFoundError", async () => {
-    const fx = mockFetch([ok({ webhook: registration }), fail(404, "not_found", "Webhook not found")]);
-    const c = makeClient(fx);
-    const hook = await c.webhooks.get(3);
-    expect(fx.last.url.pathname).toBe("/api/v1/webhooks/3");
-    expect(hook.id).toBe(3);
-    await expect(c.webhooks.get(999)).rejects.toBeInstanceOf(NotFoundError);
-  });
-
   it("delete sends DELETE and returns { id, deleted }", async () => {
     const fx = mockFetch([ok({ id: 3, deleted: true })]);
     const c = makeClient(fx);

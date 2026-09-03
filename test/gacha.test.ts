@@ -69,13 +69,12 @@ const reserved: Purchase = { ...REVEALED, status: "RESERVED", items: undefined, 
 describe("gacha.catalog", () => {
   it("GETs the catalog, forwards filters, and unwraps data.tiers", async () => {
     const fx = mockFetch([ok({ tiers: [TIER], games: [{ id: "pokemon", label: "Pokémon" }] })]);
-    const tiers = await makeClient(fx).gacha.catalog({ game: "pokemon", active: true, fresh: true });
+    const tiers = await makeClient(fx).gacha.catalog({ game: "pokemon", active: true });
 
     expect(fx.last.method).toBe("GET");
     expect(fx.last.url.pathname).toBe("/api/v1/mystery/catalog");
     expect(fx.last.url.searchParams.get("game")).toBe("pokemon");
     expect(fx.last.url.searchParams.get("active")).toBe("true");
-    expect(fx.last.url.searchParams.get("fresh")).toBe("true");
     expect(tiers).toHaveLength(1);
     expect(tiers[0]!.price_usdc).toBe("25");
   });
@@ -478,9 +477,9 @@ describe("gacha.games", () => {
   it("reads data.games from the catalog endpoint", async () => {
     const fx = mockFetch([ok({ tiers: [], games: [{ id: "pokemon", label: "Pokémon" }] })]);
     const c = makeClient(fx);
-    const games = await c.gacha.games({ fresh: true });
+    const games = await c.gacha.games();
     expect(fx.last.url.pathname).toBe("/api/v1/mystery/catalog");
-    expect(fx.last.url.search).toBe("?fresh=true");
+    expect(fx.last.url.search).toBe("");
     expect(games).toEqual([{ id: "pokemon", label: "Pokémon" }]);
   });
 });

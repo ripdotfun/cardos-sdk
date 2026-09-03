@@ -175,14 +175,6 @@ export interface BuybackCreateParams extends RequestOverrides {
   offer_price_usdc?: UsdcString;
 }
 
-export interface BuybackCreateForPurchaseParams extends RequestOverrides {
-  /** Required if the purchase has multiple items. Ignored on the token-id path. */
-  token_id?: string;
-  /** Token-id path only. */
-  item_type?: BuybackItemType;
-  offer_price_usdc?: UsdcString;
-}
-
 export interface BuybackOffersParams extends RequestOverrides {
   token_id: string;
 }

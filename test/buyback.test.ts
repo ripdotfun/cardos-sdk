@@ -69,29 +69,7 @@ describe("buyback.create", () => {
   });
 });
 
-describe("buyback.createForPurchase", () => {
-  it("puts the id in the path and the disambiguator in the body", async () => {
-    const fx = mockFetch([
-      { status: 201, body: { success: true, data: { ...OFFER, idempotent: true } } },
-    ]);
-    const offer = await makeClient(fx).buyback.createForPurchase(1234, {
-      token_id: "10231",
-      offer_price_usdc: "15.000000",
-    });
-
-    expect(fx.last.url.pathname).toBe("/api/v1/mystery/buyback/1234");
-    expect(fx.last.body).toEqual({ token_id: "10231", offer_price_usdc: "15.000000" });
-    expect(offer.idempotent).toBe(true);
-  });
-
-  it("sends an empty body when no options are passed", async () => {
-    const fx = mockFetch([{ status: 201, body: { success: true, data: OFFER } }]);
-    await makeClient(fx).buyback.createForPurchase("10231");
-    expect(fx.last.body).toEqual({});
-  });
-});
-
-describe("buyback.offers / get", () => {
+describe("buyback.offers", () => {
   it("queries by token_id and unwraps the offers array", async () => {
     const fx = mockFetch([ok({ offers: [SUMMARY] })]);
     const offers = await makeClient(fx).buyback.offers({ token_id: "10231" });
@@ -101,13 +79,6 @@ describe("buyback.offers / get", () => {
     expect(fx.last.url.searchParams.get("token_id")).toBe("10231");
     expect(offers).toHaveLength(1);
     expect(offers[0]!.purchase_id).toBeNull();
-  });
-
-  it("reads offers by purchase id or token id from the path", async () => {
-    const fx = mockFetch([ok({ offers: [] })]);
-    const offers = await makeClient(fx).buyback.get(1234);
-    expect(fx.last.url.pathname).toBe("/api/v1/mystery/buyback/1234");
-    expect(offers).toEqual([]);
   });
 });
 

@@ -42,17 +42,7 @@ import { Resource } from "./base.js";
 
 const BASE = "/api/v1/mystery";
 
-/** Cached reads accept `fresh` to ask for a recomputed answer. */
-export interface FreshOverride {
-  /**
-   * Skip the cached answer and recompute. Not part of the published API
-   * reference, and it is rate-limited more tightly than a normal read — leave
-   * it off for polling loops.
-   */
-  fresh?: boolean;
-}
-
-export interface CatalogParams extends RequestOverrides, FreshOverride {
+export interface CatalogParams extends RequestOverrides {
   /** Filter by game id: `pokemon` | `onepiece` | `azuki`. */
   game?: string;
   /** Filter by what the tier yields, e.g. `card`. */
@@ -61,9 +51,9 @@ export interface CatalogParams extends RequestOverrides, FreshOverride {
   active?: boolean;
 }
 
-export interface OddsParams extends RequestOverrides, FreshOverride {}
+export interface OddsParams extends RequestOverrides {}
 
-export interface FeedParams extends OffsetPageParams, RequestOverrides, FreshOverride {
+export interface FeedParams extends OffsetPageParams, RequestOverrides {
   /** Filter to one game (catalog ids). Tiers with no game metadata drop out when set. */
   game?: string;
 }
@@ -115,7 +105,7 @@ interface SubmitPurchaseParamsBase extends RequestOverrides {
 /** Params for `submit()`. The identity that signed the purchase is required. */
 export type SubmitPurchaseParams = SubmitPurchaseParamsBase & UserIdentity;
 
-interface PriceParamsBase extends RequestOverrides, FreshOverride {
+interface PriceParamsBase extends RequestOverrides {
   /** `CARD` or `GRADED_CARD`, to disambiguate a token id that exists as both (the slab wins otherwise). */
   item_type?: PricedItemType;
 }
@@ -155,7 +145,7 @@ export class GachaResource extends Resource {
    * `GET /api/v1/mystery/catalog` (same call as `catalog()`, reads `data.games`)
    * · scope `read:catalog`.
    */
-  async games(params?: Pick<CatalogParams, keyof RequestOverrides | "fresh">): Promise<GachaGameRef[]> {
+  async games(params?: RequestOverrides): Promise<GachaGameRef[]> {
     const { overrides, rest } = this.split(params);
     const data = await this.http.data<{ games?: GachaGameRef[] }>({
       ...overrides,
