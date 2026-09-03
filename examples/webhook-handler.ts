@@ -5,7 +5,7 @@
  *   CARDOS_API_KEY=rip_v1_… npx tsx examples/webhook-handler.ts register https://you.example/hooks/cardos
  *   CARDOS_WEBHOOK_SECRET=… npx tsx examples/webhook-handler.ts serve
  *
- * The verification half imports from `@cardos/sdk/webhooks` — a separate entry
+ * The verification half imports from `@ripdotfun/cardos-sdk/webhooks` — a separate entry
  * with no HTTP client in it, implemented on Web Crypto, so the same handler
  * runs on Node, Bun, Deno, Workers and Vercel Edge.
  *

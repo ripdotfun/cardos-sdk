@@ -1,5 +1,5 @@
 /**
- * `@cardos/sdk/webhooks` — verify and parse incoming webhook deliveries.
+ * `@ripdotfun/cardos-sdk/webhooks` — verify and parse incoming webhook deliveries.
  *
  * A separate entry point from the main barrel so a request handler can import
  * just this (no HTTP client, no resources). Everything here is Web Crypto
@@ -7,7 +7,7 @@
  * Cloudflare Workers, Vercel Edge and the browser — there is no `node:crypto`
  * import anywhere in this file.
  *
- *     import { constructEvent } from "@cardos/sdk/webhooks";
+ *     import { constructEvent } from "@ripdotfun/cardos-sdk/webhooks";
  *
  *     const event = await constructEvent({
  *       payload: rawBody,               // the EXACT bytes, not JSON.parse'd

@@ -80,7 +80,7 @@ export interface SellbackPrepareResult {
   contract: Address;
   /** Card NFT contract the one-time approval targets. */
   card_contract: Address;
-  /** BuybackPool — the operator being approved, and the payer. */
+  /** The buyback pool contract — the operator being approved, and the payer. */
   buyback_pool: Address;
   seller: Address;
   /** The eligible subset actually encoded into the call. */

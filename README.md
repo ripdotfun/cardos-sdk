@@ -1,4 +1,4 @@
-# `@cardos/sdk`
+# `@ripdotfun/cardos-sdk`
 
 Official TypeScript SDK for the [CardOS](https://business.getcardos.com) APIs — mystery packs,
 instant packs, custodial wallets, sell-back, physical redemption, revenue share, webhooks,
@@ -12,11 +12,11 @@ Full API reference: [business.getcardos.com/docs](https://business.getcardos.com
 [/instant-docs](https://business.getcardos.com/instant-docs) (Instant Pack).
 
 ```sh
-pnpm add @cardos/sdk
+pnpm add @ripdotfun/cardos-sdk
 ```
 
 ```ts
-import { CardOS } from "@cardos/sdk";
+import { CardOS } from "@ripdotfun/cardos-sdk";
 const cardos = new CardOS({ apiKey: process.env.CARDOS_API_KEY! });
 
 // Sell a pack, filled from real cards in the vault.
@@ -67,6 +67,12 @@ const cardos = new CardOS({
   defaultHeaders: { "x-app": "storefront" },  // merged into every request
 });
 ```
+
+> **Keep the key on the server.** A partner key can spend end-user balances, create
+> buyback offers and register webhooks, so it belongs in a backend, a serverless function or an
+> edge route — never in browser or mobile bundles. The SDK runs in the browser only so a
+> same-origin proxy of yours can front the API; point `baseUrl` at that proxy and keep the key
+> behind it.
 
 | Option | Default | Notes |
 |---|---|---|
@@ -468,7 +474,7 @@ Prices move on a recompute schedule — there is nothing to gain from polling fa
 Docs: [Webhooks guide](https://business.getcardos.com/gacha-docs/webhooks-guide)
 
 Register an endpoint (scope `webhooks:manage`), then verify every delivery. Verification lives in
-a **separate entry point**, `@cardos/sdk/webhooks`, so a request handler can import it without the
+a **separate entry point**, `@ripdotfun/cardos-sdk/webhooks`, so a request handler can import it without the
 HTTP client. It is implemented on Web Crypto, so it runs unchanged on Node, Bun, Deno, Workers and
 Edge.
 
@@ -500,7 +506,7 @@ JSON and breaks the HMAC.
 
 ```ts
 import express from "express";
-import { constructEvent, WebhookSignatureError } from "@cardos/sdk/webhooks";
+import { constructEvent, WebhookSignatureError } from "@ripdotfun/cardos-sdk/webhooks";
 
 app.post("/hooks/cardos", express.raw({ type: "application/json" }), async (req, res) => {
   let event;
@@ -579,7 +585,7 @@ absent. `instant_purchase.fulfilled` carries the whole serialized purchase, `car
 Just need the boolean?
 
 ```ts
-import { verifyWebhookSignature } from "@cardos/sdk/webhooks";
+import { verifyWebhookSignature } from "@ripdotfun/cardos-sdk/webhooks";
 
 await verifyWebhookSignature({
   payload: rawBody,                       // string or Uint8Array — the exact bytes
@@ -649,7 +655,7 @@ never heard back": `ConnectionError`, `TimeoutError`, `PollTimeoutError`, `Termi
 ```ts
 import {
   CardOSError, ConflictError, InsufficientFundsError, RateLimitError,
-} from "@cardos/sdk";
+} from "@ripdotfun/cardos-sdk";
 
 try {
   await cardos.gacha.purchase({ tier_id: 3, external_user_id: user.id });
@@ -776,8 +782,8 @@ Pagination limits: partner API `limit` 1–100 (default 50), `offset` 0–10 000
   so its optional fields are `?`.
 - **No `any`** in any exported signature.
 - Both entry points ship ESM and CJS with `.d.ts`:
-  `@cardos/sdk` and `@cardos/sdk/webhooks`.
-- Types are exported alongside the client — `import type { Purchase, Card, WebhookEvent } from "@cardos/sdk"`.
+  `@ripdotfun/cardos-sdk` and `@ripdotfun/cardos-sdk/webhooks`.
+- Types are exported alongside the client — `import type { Purchase, Card, WebhookEvent } from "@ripdotfun/cardos-sdk"`.
 
 ## Examples
 

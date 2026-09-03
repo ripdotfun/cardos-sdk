@@ -1,4 +1,4 @@
-# `@cardos/sdk` — design notes & contributor guide
+# `@ripdotfun/cardos-sdk` — design notes & contributor guide
 
 TypeScript SDK for the CardOS APIs. Zero runtime dependencies, isomorphic
 (Node ≥ 20, browsers, edge runtimes), ESM + CJS via tsup, tests via vitest with
@@ -7,7 +7,7 @@ a fake `fetch`.
 The experience this package exists for:
 
 ```ts
-import { CardOS } from "@cardos/sdk";
+import { CardOS } from "@ripdotfun/cardos-sdk";
 const cardos = new CardOS({ apiKey: process.env.CARDOS_API_KEY! });
 
 // Sell a pack, filled from real cards in the CardOS vault.
@@ -42,7 +42,7 @@ than widening the SDK on your own.
 | `src/resources/base.ts` | `Resource` base class: `offsetPage()`, `numberedPage()`, `split()` (peels `RequestOverrides` off a params object). |
 | `src/resources/*.ts` | One class per surface: `gacha`, `instant`, `wallet`, `sellback`, `buyback`, `redemption`, `revenue`, `webhooks`, `cards`, `expansions`, `sealed`. |
 | `src/types/*.ts` | Request/response types per surface, all re-exported from `src/index.ts`. |
-| `src/webhooks.ts` | The `@cardos/sdk/webhooks` entry: `verifyWebhookSignature`, `constructEvent` (Web Crypto, no Node-only imports). |
+| `src/webhooks.ts` | The `@ripdotfun/cardos-sdk/webhooks` entry: `verifyWebhookSignature`, `constructEvent` (Web Crypto, no Node-only imports). |
 | `test/helpers.ts` | `mockFetch([...canned])`, `ok()`, `accepted()`, `fail()`, `makeClient()`. |
 
 ## Conventions

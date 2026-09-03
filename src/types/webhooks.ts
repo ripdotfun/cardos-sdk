@@ -4,7 +4,7 @@
  * Two halves live here:
  *  - the REST shapes behind `cardos.webhooks` (`WebhookRegistration`,
  *    `WebhookDelivery`, …);
- *  - the delivered-event shapes behind `@cardos/sdk/webhooks`
+ *  - the delivered-event shapes behind `@ripdotfun/cardos-sdk/webhooks`
  *    (`WebhookEvent` and its per-event `data` payloads).
  *
  * Every exported name is `Webhook*`-prefixed so nothing collides with the
@@ -665,7 +665,7 @@ export type WebhookEventFor<E extends WebhookEventType> = Extract<
 // Verification options
 // ---------------------------------------------------------------------------
 
-/** Options for `verifyWebhookSignature` (`@cardos/sdk/webhooks`). */
+/** Options for `verifyWebhookSignature` (`@ripdotfun/cardos-sdk/webhooks`). */
 export interface WebhookVerifyOptions {
   /** The EXACT raw request body. Parsing and re-stringifying breaks the HMAC. */
   payload: string | Uint8Array;
@@ -679,7 +679,7 @@ export interface WebhookVerifyOptions {
   now?: number;
 }
 
-/** Options for `constructEvent` (`@cardos/sdk/webhooks`). */
+/** Options for `constructEvent` (`@ripdotfun/cardos-sdk/webhooks`). */
 export interface WebhookConstructEventOptions {
   /** The EXACT raw request body. */
   payload: string | Uint8Array;

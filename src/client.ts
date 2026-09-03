@@ -69,7 +69,7 @@ export class CardOS {
   readonly redemption: RedemptionResource;
   /** Revenue share: terms, running numbers, statements, payout wallet. */
   readonly revenue: RevenueResource;
-  /** Webhook registry + delivery log. Signature verification lives in `@cardos/sdk/webhooks`. */
+  /** Webhook registry + delivery log. Signature verification lives in `@ripdotfun/cardos-sdk/webhooks`. */
   readonly webhooks: WebhooksResource;
   /** Card Data API — cards (search / get / printings / prices). */
   readonly cards: CardsResource;

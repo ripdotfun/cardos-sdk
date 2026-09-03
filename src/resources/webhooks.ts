@@ -2,7 +2,7 @@
  * `cardos.webhooks` — the webhook registry and its delivery log.
  *
  * This resource only MANAGES subscriptions. Verifying and parsing the
- * deliveries themselves lives in the separate `@cardos/sdk/webhooks` entry
+ * deliveries themselves lives in the separate `@ripdotfun/cardos-sdk/webhooks` entry
  * (`verifyWebhookSignature`, `constructEvent`) so a request handler can import
  * the crypto without pulling in the HTTP client.
  *
